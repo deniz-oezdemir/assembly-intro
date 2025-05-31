@@ -116,3 +116,8 @@ XOR 10101010
 - **Smaller instruction size:** Encodes to fewer bytes.
 - **Performance:** Modern CPUs optimize this pattern.
 - **Historical efficiency:** On older CPUs, this was faster than loading a constant.
+
+## Sources
+### Further Reading & Resources
+
+- [Assembly Language in 100 Seconds (Fireship)](https://www.youtube.com/watch?v=4gwYkEK0gOk)
