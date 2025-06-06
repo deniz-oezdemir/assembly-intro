@@ -13,6 +13,10 @@ ssize_t ft_write(int fd, const void *buf, size_t count);
 ssize_t ft_read(int fd, void *buf, size_t count);
 char    *ft_strdup(const char *s);
 
+// Helper functions
+void verify_file_content(const char *filename);
+void create_test_file(const char *filename, const char *content);
+
 void test_strlen(const char *str) {
     size_t libc_result = strlen(str);
     size_t asm_result = ft_strlen(str);
@@ -207,6 +211,7 @@ void test_strdup(const char *str) {
     }
 
     printf("  Allocation result: %s\n", alloc_match ? "✅ PASS" : "❌ FAIL");
+    // Test case pairs (s1, s2)
 
     if (libc_result != NULL && asm_result != NULL) {
         printf("  String content: %s\n\n", content_match ? "✅ PASS" : "❌ FAIL");
@@ -219,33 +224,47 @@ void test_strdup(const char *str) {
     if (asm_result) free(asm_result);
 }
 
-int main(void) {
+void run_strlen_tests(void) {
     printf("=== ft_strlen Testing ===\n\n");
 
-    // Test cases
-    test_strlen("Hello, friend");
-    test_strlen("");
-    test_strlen("Special chars: !@#$%^&*()");
+    // Basic test cases
+    const char *basic_tests[] = {
+        "Hello, friend",
+        "",
+        "Special chars: !@#$%^&*()"
+    };
+
+    for (size_t i = 0; i < sizeof(basic_tests) / sizeof(basic_tests[0]); i++) {
+        test_strlen(basic_tests[i]);
+    }
 
     // Test with allocated memory
     char *dynamic_str = malloc(1000);
     if (dynamic_str) {
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 999; i++)
             dynamic_str[i] = 'A' + (i % 26);
-        dynamic_str[1000] = '\0';
+        dynamic_str[999] = '\0';
         test_strlen(dynamic_str);
         free(dynamic_str);
     }
+}
 
+void run_strcpy_tests(void) {
     printf("\n=== ft_strcpy Testing ===\n\n");
 
-    // Test cases for strcpy
-    test_strcpy("Hello, world!");
-    test_strcpy("");
-    test_strcpy("Special chars: !@#$%^&*()");
+    // Basic test cases
+    const char *basic_tests[] = {
+        "Hello, world!",
+        "",
+        "Special chars: !@#$%^&*()"
+    };
+
+    for (size_t i = 0; i < sizeof(basic_tests) / sizeof(basic_tests[0]); i++) {
+        test_strcpy(basic_tests[i]);
+    }
 
     // Test with allocated memory
-    dynamic_str = malloc(1000);
+    char *dynamic_str = malloc(1000);
     if (dynamic_str) {
         for (int i = 0; i < 999; i++)
             dynamic_str[i] = 'A' + (i % 26);
@@ -253,25 +272,29 @@ int main(void) {
         test_strcpy(dynamic_str);
         free(dynamic_str);
     }
+}
 
+void run_strcmp_tests(void) {
     printf("\n=== ft_strcmp Testing ===\n\n");
 
-    // Empty string tests
-    test_strcmp("", "");                    // Two empty strings
-    test_strcmp("", "Hello");               // First empty, second not
-    test_strcmp("Hello", "");               // Second empty, first not
+    // Test case pairs (s1, s2)
+    const char *test_pairs[][2] = {
+        {"", ""},                    // Two empty strings
+        {"", "Hello"},               // First empty, second not
+        {"Hello", ""},               // Second empty, first not
+        {"identical", "identical"},  // Equal strings
+        {"apple", "banana"},         // First < second
+        {"banana", "apple"},         // First > second
+        {"test", "testing"},         // First is prefix of second
+        {"testing", "test"}          // Second is prefix of first
+    };
 
-    // Equal strings
-    test_strcmp("identical", "identical");
+    for (size_t i = 0; i < sizeof(test_pairs) / sizeof(test_pairs[0]); i++) {
+        test_strcmp(test_pairs[i][0], test_pairs[i][1]);
+    }
+}
 
-    // Different strings and order switching
-    test_strcmp("apple", "banana");         // First < second
-    test_strcmp("banana", "apple");         // First > second (switched)
-
-    // Prefix strings
-    test_strcmp("test", "testing");         // First is prefix of second
-    test_strcmp("testing", "test");         // Second is prefix of first
-
+void run_write_tests(void) {
     printf("\n=== ft_write Testing ===\n\n");
 
     // Test writing to stdout
@@ -286,63 +309,74 @@ int main(void) {
         close(fd);
 
         // Read back and show the file content
-        char buffer[100];
-        fd = open("test_write.txt", O_RDONLY);
-        if (fd >= 0) {
-            ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-            if (bytes_read > 0) {
-                buffer[bytes_read] = '\0';
-                printf("File content verification:\n\"%s\"\n\n", buffer);
-            }
-            close(fd);
-        }
+        verify_file_content("test_write.txt");
     } else {
         printf("Failed to create test file\n\n");
     }
 
-    // Test with invalid file descriptor
+    // Test error cases
     test_write(-1, "This should fail", 15, "Invalid file descriptor");
-
-    // Test with NULL buffer
     test_write(1, NULL, 10, "NULL buffer");
+}
 
+void verify_file_content(const char *filename) {
+    char buffer[100];
+    int fd = open(filename, O_RDONLY);
+    if (fd >= 0) {
+        ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';
+            printf("File content verification:\n\"%s\"\n\n", buffer);
+        }
+        close(fd);
+    }
+}
+
+void run_read_tests(void) {
     printf("\n=== ft_read Testing ===\n\n");
 
-    // Test 1: Read from a file
-    // Create a test file with known content
+    // Create a test file
     const char *test_content = "This is test content for reading.\nSecond line of the file.\n";
-    fd = open("test_read.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd >= 0) {
-        write(fd, test_content, strlen(test_content));
-        close(fd);
+    create_test_file("test_read.txt", test_content);
 
-        // Open file for reading and test
-        fd = open("test_read.txt", O_RDONLY);
-        if (fd >= 0) {
-            test_read(fd, 100, "File input");
-            close(fd);
-        } else {
-            printf("Failed to open test file for reading\n\n");
-        }
+    // Test reading from file
+    int fd = open("test_read.txt", O_RDONLY);
+    if (fd >= 0) {
+        test_read(fd, 100, "File input");
+        close(fd);
     } else {
-        printf("Failed to create test file\n\n");
+        printf("Failed to open test file for reading\n\n");
     }
 
-    // Test 2: Read from stdin (interactive)
+    // Test stdin and invalid FD
     printf("For the stdin test, please type same text and press Enter twice:\n");
     test_read(STDIN_FILENO, 50, "Standard input");
-
-    // Test 3: Invalid file descriptor
     test_read(-1, 10, "Invalid file descriptor");
+}
 
+void create_test_file(const char *filename, const char *content) {
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        write(fd, content, strlen(content));
+        close(fd);
+    } else {
+        printf("Failed to create test file %s\n\n", filename);
+    }
+}
+
+void run_strdup_tests(void) {
     printf("\n=== ft_strdup Testing ===\n\n");
 
-    // Test with empty string
-    test_strdup("");
+    // Basic test cases
+    const char *basic_tests[] = {
+        "",
+        "Hello, world!",
+        "This is a test string with some special chars: !@#$%^&*()"
+    };
 
-    // Test with normal strings
-    test_strdup("Hello, world!");
-    test_strdup("This is a test string with some special chars: !@#$%^&*()");
+    for (size_t i = 0; i < sizeof(basic_tests) / sizeof(basic_tests[0]); i++) {
+        test_strdup(basic_tests[i]);
+    }
 
     // Test with very long string
     char *long_str = malloc(1000);
@@ -353,6 +387,14 @@ int main(void) {
         test_strdup(long_str);
         free(long_str);
     }
+}
 
+int main(void) {
+    run_strlen_tests();
+    run_strcpy_tests();
+    run_strcmp_tests();
+    run_write_tests();
+    run_read_tests();
+    run_strdup_tests();
     return 0;
 }
