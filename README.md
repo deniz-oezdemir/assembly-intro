@@ -9,8 +9,10 @@ An introduction to assembly language for C programmers, focusing reimplementing 
 - [Common x86-64 Registers](#common-x86-64-registers)
 - [Memory Addressing in Assembly](#memory-addressing-in-assembly)
 - [Common Instructions](#common-instructions)
-- [The `ft_strlen` Function Explained Simply](#the-ft_strlen-function-explained-simply)
+- [The `ft_strlen` Function Explained](#the-ft_strlen-function-explained)
 - [Detailed Explanation of `xor rax, rax`](#detailed-explanation-of-xor-rax-rax)
+- [Memory Leak Detection](#memory-leak-detection)
+- [Sources](#sources)
 
 ## What is Assembly Language?
 
@@ -117,7 +119,12 @@ XOR 10101010
 - **Performance:** Modern CPUs optimize this pattern.
 - **Historical efficiency:** On older CPUs, this was faster than loading a constant.
 
+## Memory Leak Detection
+
+Tools like `Valgrind` may not fully support certain assembly instructions. For example, `Valgrind` cannot handle the `cmpsb` instruction used in `ft_strcmp`, which can lead to false positives or incomplete analysis.
+
+Instead, we use the `fsanitize` (AddressSanitizer) feature available in modern compilers. `fsanitize` provides better support for detecting memory errors, even when your code includes assembly instructions that `Valgrind` does not recognize.
+
 ## Sources
-### Further Reading & Resources
 
 - [Assembly Language in 100 Seconds (Fireship)](https://www.youtube.com/watch?v=4gwYkEK0gOk)

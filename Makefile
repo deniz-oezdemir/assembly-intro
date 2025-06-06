@@ -8,6 +8,7 @@ ASM_FLAGS	=	-f elf64
 
 CC				=	cc
 C_FLAGS		=	-Wall -Wextra -Werror
+SANITIZE	=	-fsanitize=address -g
 
 .PHONY: all clean fclean re test
 
@@ -20,7 +21,7 @@ $(NAME): $(OBJS)
 	$(ASM) $(ASM_FLAGS) $< -o $@
 
 test :
-	$(CC) $(C_FLAGS) main.c $(NAME) -L. -lasm
+	$(CC) $(C_FLAGS) $(SANITIZE) main.c $(NAME) -L. -lasm
 
 clean:
 	rm -f $(OBJS)
