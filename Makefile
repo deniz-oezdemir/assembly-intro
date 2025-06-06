@@ -1,6 +1,6 @@
 NAME			=	libasm.a
 
-SRCS			=	ft_strlen.s ft_strcpy.s ft_strcmp.s
+SRCS			=	ft_strlen.s ft_strcpy.s ft_strcmp.s ft_write.s
 OBJS			=	$(SRCS:.s=.o)
 
 ASM				=	nasm
@@ -26,6 +26,6 @@ clean:
 	rm -f $(OBJS)
 
 fclean: clean
-	rm -f $(NAME) ./a.out
+	rm -f $(NAME) ./a.out test_write.txt
 
 re: fclean all

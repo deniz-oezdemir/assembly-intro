@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 // Declare the external functions from the assembly files
 size_t  ft_strlen(const char *s);
 char    *ft_strcpy(char *dest, const char *src);
 int     ft_strcmp(const char *s1, const char *s2);
+ssize_t ft_write(int fd, const void *buf, size_t count);
 
 void test_strlen(const char *str) {
     size_t libc_result = strlen(str);
@@ -55,6 +59,48 @@ void test_strcmp(const char *s1, const char *s2) {
     } else {
         printf("  Result: ❌ FAIL\n\n");
     }
+}
+
+void test_write(int fd, const char *buffer, size_t size, const char *test_name) {
+    // Save original errno
+    int original_errno = errno;
+    errno = 0;
+
+    // Test libc write
+    ssize_t libc_result = write(fd, buffer, size);
+    int libc_errno = errno;
+
+    // Reset errno
+    errno = 0;
+
+    // Test ft_write
+    ssize_t asm_result = ft_write(fd, buffer, size);
+    int asm_errno = errno;
+
+    // Restore original errno
+    errno = original_errno;
+
+    // Check if results match
+    int result_match = (libc_result == asm_result);
+    int errno_match = (libc_errno == asm_errno);
+
+    printf("Testing write: %s\n", test_name);
+    // printf("  Buffer: \"%.*s\"\n", (int)size, buffer);
+    printf("  Size: %zu bytes\n", size);
+    printf("  libc write result: %zd\n", libc_result);
+    printf("  asm write result: %zd\n", asm_result);
+
+    if (libc_result < 0)
+        printf("  libc errno: %d (%s)\n", libc_errno, strerror(libc_errno));
+    if (asm_result < 0)
+        printf("  asm errno: %d (%s)\n", asm_errno, strerror(asm_errno));
+
+    printf("  Return value match: %s\n", result_match ? "✅ PASS" : "❌ FAIL");
+
+    if (libc_result < 0 || asm_result < 0)
+        printf("  Errno match: %s\n\n", errno_match ? "✅ PASS" : "❌ FAIL");
+    else
+        printf("\n");
 }
 
 int main(void) {
@@ -109,6 +155,40 @@ int main(void) {
     // Prefix strings
     test_strcmp("test", "testing");         // First is prefix of second
     test_strcmp("testing", "test");         // Second is prefix of first
+
+    printf("\n=== ft_write Testing ===\n\n");
+
+    // Test writing to stdout
+    const char *stdout_msg = "Test message to stdout\n";
+    test_write(STDOUT_FILENO, stdout_msg, strlen(stdout_msg), "Standard output");
+
+    // Test writing to a file
+    int fd = open("test_write.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        const char *file_msg = "Test message to file\n";
+        test_write(fd, file_msg, strlen(file_msg), "File output");
+        close(fd);
+
+        // Read back and show the file content
+        char buffer[100];
+        fd = open("test_write.txt", O_RDONLY);
+        if (fd >= 0) {
+            ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+            if (bytes_read > 0) {
+                buffer[bytes_read] = '\0';
+                printf("File content verification:\n\"%s\"\n\n", buffer);
+            }
+            close(fd);
+        }
+    } else {
+        printf("Failed to create test file\n\n");
+    }
+
+    // Test with invalid file descriptor
+    test_write(-1, "This should fail", 15, "Invalid file descriptor");
+
+    // Test with NULL buffer
+    test_write(1, NULL, 10, "NULL buffer");
 
     return 0;
 }
