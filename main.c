@@ -11,7 +11,7 @@ char    *ft_strcpy(char *dest, const char *src);
 int     ft_strcmp(const char *s1, const char *s2);
 ssize_t ft_write(int fd, const void *buf, size_t count);
 ssize_t ft_read(int fd, void *buf, size_t count);
-
+char    *ft_strdup(const char *s);
 
 void test_strlen(const char *str) {
     size_t libc_result = strlen(str);
@@ -179,6 +179,46 @@ void test_read(int fd, size_t size, const char *test_name) {
         printf("\n");
 }
 
+void test_strdup(const char *str) {
+    // Perform both duplications
+    char *libc_result = strdup(str);
+    char *asm_result = ft_strdup(str);
+
+    // Check if both allocations succeeded
+    int alloc_match = ((libc_result == NULL) == (asm_result == NULL));
+
+    // Check if the strings match (only if both allocations succeeded)
+    int content_match = 0;
+    if (libc_result != NULL && asm_result != NULL) {
+        content_match = (strcmp(libc_result, asm_result) == 0);
+    }
+
+    printf("Testing strdup: \"%s\"\n", str);
+    if (libc_result) {
+        printf("  libc strdup: \"%s\"\n", libc_result);
+    } else {
+        printf("  libc strdup: NULL\n");
+    }
+
+    if (asm_result) {
+        printf("  asm strdup: \"%s\"\n", asm_result);
+    } else {
+        printf("  asm strdup: NULL\n");
+    }
+
+    printf("  Allocation result: %s\n", alloc_match ? "✅ PASS" : "❌ FAIL");
+
+    if (libc_result != NULL && asm_result != NULL) {
+        printf("  String content: %s\n\n", content_match ? "✅ PASS" : "❌ FAIL");
+    } else {
+        printf("\n");
+    }
+
+    // Free the allocated memory
+    if (libc_result) free(libc_result);
+    if (asm_result) free(asm_result);
+}
+
 int main(void) {
     printf("=== ft_strlen Testing ===\n\n");
 
@@ -294,6 +334,25 @@ int main(void) {
 
     // Test 3: Invalid file descriptor
     test_read(-1, 10, "Invalid file descriptor");
+
+    printf("\n=== ft_strdup Testing ===\n\n");
+
+    // Test with empty string
+    test_strdup("");
+
+    // Test with normal strings
+    test_strdup("Hello, world!");
+    test_strdup("This is a test string with some special chars: !@#$%^&*()");
+
+    // Test with very long string
+    char *long_str = malloc(1000);
+    if (long_str) {
+        for (int i = 0; i < 999; i++)
+            long_str[i] = 'A' + (i % 26);
+        long_str[999] = '\0';
+        test_strdup(long_str);
+        free(long_str);
+    }
 
     return 0;
 }
