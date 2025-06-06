@@ -10,6 +10,8 @@ size_t  ft_strlen(const char *s);
 char    *ft_strcpy(char *dest, const char *src);
 int     ft_strcmp(const char *s1, const char *s2);
 ssize_t ft_write(int fd, const void *buf, size_t count);
+ssize_t ft_read(int fd, void *buf, size_t count);
+
 
 void test_strlen(const char *str) {
     size_t libc_result = strlen(str);
@@ -85,7 +87,6 @@ void test_write(int fd, const char *buffer, size_t size, const char *test_name) 
     int errno_match = (libc_errno == asm_errno);
 
     printf("Testing write: %s\n", test_name);
-    // printf("  Buffer: \"%.*s\"\n", (int)size, buffer);
     printf("  Size: %zu bytes\n", size);
     printf("  libc write result: %zd\n", libc_result);
     printf("  asm write result: %zd\n", asm_result);
@@ -96,6 +97,81 @@ void test_write(int fd, const char *buffer, size_t size, const char *test_name) 
         printf("  asm errno: %d (%s)\n", asm_errno, strerror(asm_errno));
 
     printf("  Return value match: %s\n", result_match ? "✅ PASS" : "❌ FAIL");
+
+    if (libc_result < 0 || asm_result < 0)
+        printf("  Errno match: %s\n\n", errno_match ? "✅ PASS" : "❌ FAIL");
+    else
+        printf("\n");
+}
+
+void test_read(int fd, size_t size, const char *test_name) {
+    // Buffers to store read data
+    char libc_buffer[1024] = {0};
+    char asm_buffer[1024] = {0};
+
+    // Save original errno and file position
+    int original_errno = errno;
+    off_t original_pos = -1;
+
+    // If this is a regular file, save position for repositioning
+    if (fd > 0) {
+        original_pos = lseek(fd, 0, SEEK_CUR);
+    }
+
+    errno = 0;
+
+    // Test libc read
+    ssize_t libc_result = read(fd, libc_buffer, size);
+    int libc_errno = errno;
+
+    // Reset file position if applicable
+    if (original_pos >= 0) {
+        lseek(fd, original_pos, SEEK_SET);
+    }
+
+    // Reset errno
+    errno = 0;
+
+    // Test ft_read
+    ssize_t asm_result = ft_read(fd, asm_buffer, size);
+    int asm_errno = errno;
+
+    // Restore original errno
+    errno = original_errno;
+
+    // Check if results match
+    int result_match = (libc_result == asm_result);
+    int errno_match = (libc_errno == asm_errno);
+
+    // Only compare content if both reads succeeded
+    int content_match = 0;
+    if (libc_result > 0 && asm_result > 0) {
+        content_match = (memcmp(libc_buffer, asm_buffer,
+                              (libc_result < asm_result) ? libc_result : asm_result) == 0);
+    }
+
+    printf("Testing read: %s\n", test_name);
+    printf("  Size requested: %zu bytes\n", size);
+    printf("  libc read result: %zd bytes\n", libc_result);
+    printf("  asm read result: %zd bytes\n", asm_result);
+
+    if (libc_result > 0) {
+        printf("  libc read content: \"%.*s\"\n", (int)libc_result, libc_buffer);
+    }
+
+    if (asm_result > 0) {
+        printf("  asm read content: \"%.*s\"\n", (int)asm_result, asm_buffer);
+    }
+
+    if (libc_result < 0)
+        printf("  libc errno: %d (%s)\n", libc_errno, strerror(libc_errno));
+    if (asm_result < 0)
+        printf("  asm errno: %d (%s)\n", asm_errno, strerror(asm_errno));
+
+    printf("  Return value match: %s\n", result_match ? "✅ PASS" : "❌ FAIL");
+
+    if (libc_result > 0 && asm_result > 0)
+        printf("  Content match: %s\n", content_match ? "✅ PASS" : "❌ FAIL");
 
     if (libc_result < 0 || asm_result < 0)
         printf("  Errno match: %s\n\n", errno_match ? "✅ PASS" : "❌ FAIL");
@@ -189,6 +265,35 @@ int main(void) {
 
     // Test with NULL buffer
     test_write(1, NULL, 10, "NULL buffer");
+
+    printf("\n=== ft_read Testing ===\n\n");
+
+    // Test 1: Read from a file
+    // Create a test file with known content
+    const char *test_content = "This is test content for reading.\nSecond line of the file.\n";
+    fd = open("test_read.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd >= 0) {
+        write(fd, test_content, strlen(test_content));
+        close(fd);
+
+        // Open file for reading and test
+        fd = open("test_read.txt", O_RDONLY);
+        if (fd >= 0) {
+            test_read(fd, 100, "File input");
+            close(fd);
+        } else {
+            printf("Failed to open test file for reading\n\n");
+        }
+    } else {
+        printf("Failed to create test file\n\n");
+    }
+
+    // Test 2: Read from stdin (interactive)
+    printf("For the stdin test, please type same text and press Enter twice:\n");
+    test_read(STDIN_FILENO, 50, "Standard input");
+
+    // Test 3: Invalid file descriptor
+    test_read(-1, 10, "Invalid file descriptor");
 
     return 0;
 }
