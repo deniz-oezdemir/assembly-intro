@@ -5,8 +5,8 @@
 // Declare the external functions from the assembly files
 size_t  ft_strlen(const char *s);
 char    *ft_strcpy(char *dest, const char *src);
+int     ft_strcmp(const char *s1, const char *s2);
 
-// Function to compare results and print
 void test_strlen(const char *str) {
     size_t libc_result = strlen(str);
     size_t asm_result = ft_strlen(str);
@@ -18,7 +18,6 @@ void test_strlen(const char *str) {
            (libc_result == asm_result) ? "✅ PASS" : "❌ FAIL");
 }
 
-// Function to test strcpy implementation
 void test_strcpy(const char *src) {
     char libc_dest[1024] = {0};
     char asm_dest[1024] = {0};
@@ -40,6 +39,24 @@ void test_strcpy(const char *src) {
     printf("  String content: %s\n\n", content_match ? "✅ PASS" : "❌ FAIL");
 }
 
+void test_strcmp(const char *s1, const char *s2) {
+    int libc_result = strcmp(s1, s2);
+    int asm_result = ft_strcmp(s1, s2);
+
+    // Check for exact value match
+    int exact_match = (libc_result == asm_result);
+
+    printf("Testing strcmp: \"%s\" vs \"%s\"\n", s1, s2);
+    printf("  libc strcmp: %d\n", libc_result);
+    printf("  asm strcmp: %d\n", asm_result);
+
+    if (exact_match) {
+        printf("  Result: ✅ PASS\n\n");
+    } else {
+        printf("  Result: ❌ FAIL\n\n");
+    }
+}
+
 int main(void) {
     printf("=== ft_strlen Testing ===\n\n");
 
@@ -58,7 +75,7 @@ int main(void) {
         free(dynamic_str);
     }
 
-        printf("\n=== ft_strcpy Testing ===\n\n");
+    printf("\n=== ft_strcpy Testing ===\n\n");
 
     // Test cases for strcpy
     test_strcpy("Hello, world!");
@@ -74,6 +91,24 @@ int main(void) {
         test_strcpy(dynamic_str);
         free(dynamic_str);
     }
+
+    printf("\n=== ft_strcmp Testing ===\n\n");
+
+    // Empty string tests
+    test_strcmp("", "");                    // Two empty strings
+    test_strcmp("", "Hello");               // First empty, second not
+    test_strcmp("Hello", "");               // Second empty, first not
+
+    // Equal strings
+    test_strcmp("identical", "identical");
+
+    // Different strings and order switching
+    test_strcmp("apple", "banana");         // First < second
+    test_strcmp("banana", "apple");         // First > second (switched)
+
+    // Prefix strings
+    test_strcmp("test", "testing");         // First is prefix of second
+    test_strcmp("testing", "test");         // Second is prefix of first
 
     return 0;
 }
