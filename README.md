@@ -128,3 +128,4 @@ Instead, we use the `fsanitize` (AddressSanitizer) feature available in modern c
 ## Sources
 
 - [Assembly Language in 100 Seconds (Fireship)](https://www.youtube.com/watch?v=4gwYkEK0gOk)
+- [strcmp(3)](https://www.man7.org/linux/man-pages/man3/strcmp.3.html)

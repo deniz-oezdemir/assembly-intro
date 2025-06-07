@@ -53,18 +53,15 @@ void test_strcmp(const char *s1, const char *s2) {
     int libc_result = strcmp(s1, s2);
     int asm_result = ft_strcmp(s1, s2);
 
-    // Check for exact value match
-    int exact_match = (libc_result == asm_result);
+    // Check for sign match
+    int sign_match = (libc_result < 0 && asm_result < 0) ||
+                   (libc_result == 0 && asm_result == 0) ||
+                   (libc_result > 0 && asm_result > 0);
 
     printf("Testing strcmp: \"%s\" vs \"%s\"\n", s1, s2);
     printf("  libc strcmp: %d\n", libc_result);
     printf("  asm strcmp: %d\n", asm_result);
-
-    if (exact_match) {
-        printf("  Result: ✅ PASS\n\n");
-    } else {
-        printf("  Result: ❌ FAIL\n\n");
-    }
+    printf("  Result: %s\n\n", sign_match ? "✅ PASS" : "❌ FAIL");
 }
 
 void test_write(int fd, const char *buffer, size_t size, const char *test_name) {
